@@ -43,7 +43,7 @@ const videoSchema = new Schema(
         },
         duration:{
             type: Number,
-            required: ture
+            required: true
         },
         isPublished: {
             type: Boolean,
