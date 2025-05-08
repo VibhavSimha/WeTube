@@ -77,6 +77,60 @@ const registerUser=asyncHandler(async (req,res)=>{
         throw new ApiError(500,"Something went wrong registering a user and images were deleted")
     }
 })
+
+const generateAccessAndRefreshToken = async (userId)=>{
+    try {
+        const user=await User.findById(userId);
+        if(!user){
+            throw new ApiError(404,"User does not exist")
+        }
+        const accessToken=user.generateAccessToken()
+        const refreshToken=user.generateRefreshToken()
+        user.refreshToken=refreshToken;
+        await user.save({validateBeforeSave: false})
+        return {accessToken,refreshToken}
+    } catch (error) {
+        throw new ApiError(500,"Something went wrong when generating access and refresh token")
+    }
+}
+
+const loginUser=asyncHandler(async (req,res)=>{
+    //get data from body
+    const {username,password,email}=req.body
+    //validation
+    if(!email)throw new ApiError(400,"Email is required")
+
+    const user=await User.findOne({
+        $or: [{username},{email}]
+    })
+    if(!user){
+        throw new ApiError(409,"User not found")
+    }
+    //Validate password
+
+    const isPasswordValid=await user.isPasswordCorrect(password);
+    if(!isPasswordValid)throw new ApiError(404,"Invalid password")
+
+    const {accessToken,refreshToken}=await generateAccessAndRefreshToken(user._id)
+
+    const loggedInUser=await User.findById(user._id)
+    .select("-password -refreshToken");
+    if(!loggedInUser)throw new ApiError(404,"Logged in user not found")
+    
+    const options={
+        httpsOnly: true,
+        secure: process.env.NODE_ENV==="production"
+    }
+
+    return res.status(200)
+    .cookie("accessToken",accessToken,options)
+    .cookie("refreshToekn",refreshToken,options)
+    .json(new ApiResponse(
+        200,
+        {user: loggedInUser, accessToken, refreshToken},"User logged in successfully"
+    ))
+})
+
 export {
-    registerUser
+    registerUser,loginUser
 }
