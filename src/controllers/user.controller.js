@@ -4,7 +4,7 @@ import {User} from "../models/user.models.js"
 import { uploadToCloud, deleteFromCloudinary } from "../utils/couldinary.js"
 import { upload } from "../middlewares/multer.middlewares.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
-import {jwt} from "jsonwebtoken"
+import jwt from "jsonwebtoken"
 
 const registerUser=asyncHandler(async (req,res)=>{
     const {fullname,email,username,password}=req.body
@@ -87,7 +87,7 @@ const generateAccessAndRefreshToken = async (userId)=>{
         }
         const accessToken=user.generateAccessToken()
         const refreshToken=user.generateRefreshToken()
-        user.refreshToken=refreshToken;
+        user.refreshToken=refreshToken; //Model schema
         await user.save({validateBeforeSave: false})
         return {accessToken,refreshToken}
     } catch (error) {
@@ -115,7 +115,7 @@ const loginUser=asyncHandler(async (req,res)=>{
     const {accessToken,refreshToken}=await generateAccessAndRefreshToken(user._id)
 
     const loggedInUser=await User.findById(user._id)
-    .select("-password -refreshToken");
+    .select("-password -refreshToken");//Object retured without password and refreshToken
     if(!loggedInUser)throw new ApiError(404,"Logged in user not found")
     
     const options={
@@ -134,8 +134,26 @@ const loginUser=asyncHandler(async (req,res)=>{
 
 const logoutUser=asyncHandler(async (req,res)=>{
     await User.findByIdAndUpdate(
-        //TODO: req.user._id,
+        req.user._id,
+        {
+            $set: {
+                refreshToken: undefined,
+
+            }
+        },
+        {new: true}
     )
+
+    const options={
+        httpsOnly: true,
+        secure: process.env.NODE_ENV === "production"
+    }
+
+    return res
+    .status(200)
+    .clearCokkie("accessToken",options)
+    .clearCokkie("refreshToken",options)
+    .json(new ApiResponse(200,{},"User logged out successfullly"))
 })
 
 const refreshAccessToken = asyncHandler(async (req,res)=>{
@@ -160,7 +178,7 @@ const refreshAccessToken = asyncHandler(async (req,res)=>{
             httpsOnly: true,
             secure: process.env.NODE_ENV==="production",
         }
-        const {accessToken,refreshToken:newRefreshToken}=await generateAccessAndRefreshToken(user._id);
+        const {accessToken,refreshToken:newRefreshToken}=await generateAccessAndRefreshToken(user._id);//New name for refresh token for clarity
         return res
         .status(200)
         .cookie("accessToken",accessToken,options)
@@ -177,5 +195,5 @@ const refreshAccessToken = asyncHandler(async (req,res)=>{
 })
 
 export {
-    registerUser,loginUser,refreshAccessToken
+    registerUser,loginUser,refreshAccessToken,logoutUser
 }
