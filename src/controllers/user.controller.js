@@ -194,6 +194,100 @@ const refreshAccessToken = asyncHandler(async (req,res)=>{
 
 })
 
+const changeCurrentPassword= asyncHandler(async (req,res)=>{
+    //use auth.middleware
+    const {oldPassword,newPassword}=req.body;
+    const user=await User.findById(req.user?._id)
+
+    if(!user){
+        throw new ApiError(400,"User not found")
+    }
+
+    const isPasswordValid=await user.isPasswordCorrect(oldPassword);
+    if(!isPasswordValid)throw new ApiError(401,"Invalid Old Password");
+
+    user.password=newPassword; //Model hook automatically bcrypts like a middleware on "save"
+    await user.save({validateBeforeSave: false})
+
+    return res.status(200).json(new ApiResponse(200,{},"Password changed successfully"))
+})
+
+const getCurrentUser= asyncHandler(async (req,res)=>{
+    //Use auth.middleware
+
+    const user=req.user;
+    if(!user)throw new ApiError(400,"User not found");
+
+    return res.status(200).json(new ApiResponse(200,{user: user,id: user._id},"Current User Details fetched"))
+
+})
+
+const updateAccountDetails= asyncHandler(async (req,res)=>{
+//use auth.middleware
+    const {fullname,username,email}=req.body;
+    if(!fullname || !username || !email){
+        throw new ApiError(400,"All details not received")
+    }
+
+    const user=await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set:{
+            fullname: fullname,
+            username:username,
+            email:email
+            }
+        },
+        {new: true} //Return the updated document
+    ).select("-password -refreshToken")
+
+    return res.status(200).json(new ApiResponse(200,user,"Details updated successfully"));
+})
+
+const updateUserAvatar= asyncHandler(async (req,res)=>{
+//User auth.middleware
+    const user=req.user;
+    if(!user){
+        throw new ApiError(400,"User not found")
+    }
+    else{
+        const avatarLocalPath=req.files?.avatar?.[0]?.path;
+        try{
+        const avatar=await uploadToCloud(avatarLocalPath);
+        user.avatar=avatar.url;
+        console.log("Avatar updated")
+
+        }
+        catch(error){
+            throw new ApiError(500,"Avatar Update failed",error)
+        }
+    }
+
+    return res.status(200).json(new ApiResponse(200,{},"Avatar Updated successfully"))
+})
+
+const updateUserCoverImage= asyncHandler(async (req,res)=>{
+    //User auth.middleware
+    const user=req.user;
+    if(!user){
+        throw new ApiError(400,"User not found")
+    }
+    else{
+        const coverImageLocalPath=req.files?.avatar?.[0]?.path;
+        try{
+        const coverImage=await uploadToCloud(coverImageLocalPath);
+        user.coverImage=coverImage.url;
+        console.log("Cover Image updated")
+
+        }
+        catch(error){
+            throw new ApiError(500,"Cover Image Update failed",error)
+        }
+    }
+
+    return res.status(200).json(new ApiResponse(200,{},"Cover Image Updated successfully"))
+})
+
 export {
-    registerUser,loginUser,refreshAccessToken,logoutUser
+    registerUser,loginUser,refreshAccessToken,logoutUser,changeCurrentPassword,getCurrentUser,updateAccountDetails,updateUserAvatar,updateUserCoverImage
 }
