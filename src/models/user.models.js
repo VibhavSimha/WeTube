@@ -41,7 +41,14 @@ const userSchema = new Schema(
             type: String, //Maybe cloudinary URL
             required:true
         },
+        avatarPID: {
+            type: String, //Maybe cloudinary Public ID
+            required:true
+        },
         coverImage: {
+            type: String, 
+        },
+        coverImagePID: {
             type: String, 
         },
         watchHistory: [
@@ -62,7 +69,7 @@ const userSchema = new Schema(
 
 userSchema.pre("save",async function(next){
     if(!this.isModified("password"))return next()
-    this.password=bcrypt.hash(this.password, 10)
+    this.password=await bcrypt.hash(this.password, 10) //Bug fixed: await bcrypt
     next()
 })
 
