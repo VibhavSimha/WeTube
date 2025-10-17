@@ -57,7 +57,9 @@ const registerUser = asyncHandler(async (req, res) => {
         const user = await User.create({
             fullname,
             avatar: avatar.url,
+            avatarPID: avatar.public_id,
             coverImage: coverImage.url || "",
+            coverImagePID: coverImage.public_id,
             email,
             password,
             username: username.toLowerCase()
@@ -108,6 +110,8 @@ const loginUser = asyncHandler(async (req, res) => {
     if (!user) {
         throw new ApiError(409, "User not found")
     }
+    console.log("User Found for login");
+    
     //Validate password
 
     const isPasswordValid = await user.isPasswordCorrect(password);
@@ -126,7 +130,7 @@ const loginUser = asyncHandler(async (req, res) => {
 
     return res.status(200)
         .cookie("accessToken", accessToken, options)
-        .cookie("refreshToekn", refreshToken, options)
+        .cookie("refreshToken", refreshToken, options)
         .json(new ApiResponse(
             200,
             { user: loggedInUser, accessToken, refreshToken }, "User logged in successfully"
@@ -152,15 +156,15 @@ const logoutUser = asyncHandler(async (req, res) => {
 
     return res
         .status(200)
-        .clearCokkie("accessToken", options)
-        .clearCokkie("refreshToken", options)
+        .clearCookie("accessToken", options)
+        .clearCookie("refreshToken", options)
         .json(new ApiResponse(200, {}, "User logged out successfullly"))
 })
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
-    const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken; //Cookies are sufficient for desktop app, mobile app may be from req.body
+    const incomingRefreshToken = req.cookies.refreshToken || req.body?.refreshToken; //Cookies are sufficient for desktop app, mobile app may be from req.body
     if (!incomingRefreshToken) {
-        throw ApiError(401, "Refresh token is required");
+        throw new ApiError(401, "Refresh token is required");
     }
 
     try {
@@ -172,7 +176,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         if (!user) {
             throw new ApiError(401, "Invalid refresh token")
         }
-        if (incomingRefreshToken !== user?.refreshToken) {
+        if (incomingRefreshToken !== user.refreshToken) {
             throw new ApiError(401, "Invalid refresh token or expired")
         }
         const options = {
@@ -181,14 +185,14 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         }
         const { accessToken, refreshToken: newRefreshToken } = await generateAccessAndRefreshToken(user._id);//New name for refresh token for clarity
         return res
-            .status(200)
-            .cookie("accessToken", accessToken, options)
-            .cokkie("refreshToken", newRefreshToken, options)
-            .json(
-                new ApiResponse(
-                    200, { accessToken, refreshToken: newRefreshToken },
-                    "Access token refreshed successfully"
-                ));
+        .status(200)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", newRefreshToken, options)
+        .json(
+            new ApiResponse(
+                200, { accessToken, newRefreshToken},
+                "Access token refreshed successfully"
+            ));
     } catch (error) {
         throw new ApiError(500, "Something went wrong while refreshing access token");
     }
@@ -252,8 +256,9 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
         throw new ApiError(400, "User not found")
     }
     else {
-        const avatarLocalPath = req.files?.avatar?.[0]?.path;
+        const avatarLocalPath = req.file?.path;
         try {
+            await deleteFromCloudinary(user.avatarPID);
             const avatar = await uploadToCloud(avatarLocalPath);
             user.avatar = avatar.url;
             console.log("Avatar updated")
@@ -274,8 +279,9 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
         throw new ApiError(400, "User not found")
     }
     else {
-        const coverImageLocalPath = req.files?.avatar?.[0]?.path;
+        const coverImageLocalPath = req.file?.path;
         try {
+            await deleteFromCloudinary(user.coverImagePID);
             const coverImage = await uploadToCloud(coverImageLocalPath);
             user.coverImage = coverImage.url;
             console.log("Cover Image updated")
@@ -290,7 +296,7 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
 })
 
 const getUserChannelProfile = asyncHandler(async (req, res) => {
-    const { username } = req.params;
+    const { username } = req.params; // Needs to be passed as "/<Route>/:username" in routes
     if (!username?.trim()) {
         throw new ApiError(400, "Username is Required")
     }
