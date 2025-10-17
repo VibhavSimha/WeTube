@@ -7,7 +7,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 
 
 export const verifyJWT =asyncHandler(async (req,_,next)=>{
-    const token = req.cookies.accessToken || req.body.accessToken || req.header("Autorization")?.replace("Bearer ",""); // Sometimes the request is automatically added with a header with Authorization with Bearer <Token>
+    const token = req.cookies.accessToken || req.body.accessToken || req.header("Authorization")?.replace("Bearer ",""); // Sometimes the request is automatically added with a header with Authorization with Bearer <Access Token>
     //req.headers is case sensitive for input param whereas req.header is not case sensitive
     if(!token){
         throw new ApiError(401,"Unathorized")
