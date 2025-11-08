@@ -1,7 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler.js"
 import { ApiError } from "../utils/ApiError.js"
 import { User } from "../models/user.models.js"
-import { uploadToCloud, deleteFromCloudinary } from "../utils/couldinary.js"
+import { uploadToCloud, deleteFromCloudinary } from "../utils/cloudinary.js"
 import { upload } from "../middlewares/multer.middlewares.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import jwt from "jsonwebtoken"
