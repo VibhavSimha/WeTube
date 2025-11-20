@@ -25,7 +25,15 @@ const videoSchema = new Schema(
             required: true
 
         },
+        videoPID:{
+            type: String,
+            required: true
+        },
         thumbnail: {
+            type: String,
+            required: true
+        },
+        thumbnailPID: {
             type: String,
             required: true
         },

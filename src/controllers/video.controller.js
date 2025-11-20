@@ -40,7 +40,9 @@ const publishAVideo = asyncHandler(async (req, res) => {
             const video = await Video.create({
                 owner: user,
                 videoFile: videoCloudLink.url,
+                videoPID: videoCloudLink.public_id,
                 thumbnail: thumbnailCloudLink.url,
+                thumbnailPID: thumbnailCloudLink.public_id,
                 title,
                 description,
                 views: 0,
