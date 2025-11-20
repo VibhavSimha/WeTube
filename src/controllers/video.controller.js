@@ -21,7 +21,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
         throw new ApiError(400, "All fields required");
     }
     else {
-        const videoDurationinSec = await getVideoDurationInSeconds(videoFilePath);
+        const videoDurationInSec = await getVideoDurationInSeconds(videoFilePath);
         let videoCloudLink;
         try {
             videoCloudLink = await uploadToCloud(videoFilePath);
@@ -34,6 +34,9 @@ const publishAVideo = asyncHandler(async (req, res) => {
             thumbnailCloudLink = await uploadToCloud(thumbnailPath);
         }
         catch (error) {
+            if (videoCloudLink) {
+                await deleteFromCloudinary(videoCloudLink.public_id, "video");
+            }
             throw new ApiError(500, "Thumbnail Upload to cloud failed");
         }
         try {
@@ -46,7 +49,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
                 title,
                 description,
                 views: 0,
-                duration: videoDurationinSec,
+                duration: videoDurationInSec,
                 isPublished: 1
             })
 
@@ -78,20 +81,64 @@ const publishAVideo = asyncHandler(async (req, res) => {
 const getVideoById = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     let video;
-    try{
     video = await Video.findById(videoId);
+    if (!video) {
+        throw new ApiError(404, "Video does not exist")
     }
-    catch(error){
-        throw new ApiError(400,"Video does not exist",error)
-    }
-    return res.status(200).json(new ApiResponse(200,video,"Video Found"))
+    return res.status(200).json(new ApiResponse(200, video, "Video Found"))
 
 })
 
 const updateVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
-    //TODO: update video details like title, description, thumbnail
-
+    let video;
+    video = await Video.findById(videoId);
+    if (!video) {
+        throw new ApiError(404, "Video does not exist")
+    }
+    const { title = video.title, description = video.description } = req.body;
+    if (!title || !description) {
+        throw new ApiError(400, "Empty values not accepted");
+    }
+    else {
+        let newThumbnail = req.file?.path;
+        let newThumbnailCloudLink;
+        if (newThumbnail) {
+            try {
+                newThumbnailCloudLink = await uploadToCloud(newThumbnail);
+            }
+            catch (error) {
+                throw new ApiError(500, "New Upload to cloud failed");
+            }
+        }
+        try {
+            video.title = title;
+            video.description = description;
+            if (newThumbnailCloudLink) {
+                try {
+                    await deleteFromCloudinary(video.thumbnailPID);
+                }
+                catch (error) {
+                    throw new ApiError(500, "Delete old thumbnail failed");
+                }
+                video.thumbnail = newThumbnailCloudLink.url;
+                video.thumbnailPID = newThumbnailCloudLink.public_id;
+            }
+            await video.save({ validateBeforeSave: true });
+            return res.status(200).json(new ApiResponse(200, video, "Video updated successfully"));
+        }
+        catch (error) {
+            try {
+                if (newThumbnailCloudLink) {
+                    await deleteFromCloudinary(newThumbnailCloudLink.public_id);
+                }
+            }
+            catch (error) {
+                throw new ApiError(500, "Document update as well as cloud delete failed");
+            }
+            throw new ApiError(500, "Document Update Failed", error);
+        }
+    }
 })
 
 const deleteVideo = asyncHandler(async (req, res) => {
