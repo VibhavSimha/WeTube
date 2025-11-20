@@ -35,9 +35,9 @@ const uploadToCloud =async (localFilePath)=>{
     }
 }
 
-const deleteFromCloudinary = async (publicId)=>{
+const deleteFromCloudinary = async (publicId,resource_type="image")=>{
     try{
-        const result=await cloudinary.uploader.destroy(publicId);
+        const result=await cloudinary.uploader.destroy(publicId,{resource_type});
         console.log("Deleted from cloudinary. Public id:",publicId);
     }catch(error){
         console.log("Error deleting form cloudinary", error);
