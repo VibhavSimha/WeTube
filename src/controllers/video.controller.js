@@ -5,7 +5,7 @@ import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import { asyncHandler } from "../utils/asyncHandler.js"
 import { deleteFromCloudinary, uploadToCloud } from "../utils/cloudinary.js"
-import {getVideoDurationInSeconds} from "get-video-duration"
+import { getVideoDurationInSeconds } from "get-video-duration"
 
 const getAllVideos = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query
@@ -55,19 +55,19 @@ const publishAVideo = asyncHandler(async (req, res) => {
         }
         catch (error) {
             if (videoCloudLink) {
-                try{
-                await deleteFromCloudinary(videoCloudLink.public_id,"video");//With video resource_type
+                try {
+                    await deleteFromCloudinary(videoCloudLink.public_id, "video");//With video resource_type
                 }
-                catch(error){
-                    throw new ApiError(500, "Doc creation failed as well as video deleteFromCloud",error);
+                catch (error) {
+                    throw new ApiError(500, "Doc creation failed as well as video deleteFromCloud", error);
                 }
             }
             if (thumbnailCloudLink) {
-                try{
+                try {
                     await deleteFromCloudinary(thumbnailCloudLink.public_id);
                 }
-                catch(error){
-                    throw new ApiError(500, "Doc creation failed as well as thumbnail deleteFromCloud",error);
+                catch (error) {
+                    throw new ApiError(500, "Doc creation failed as well as thumbnail deleteFromCloud", error);
                 }
             }
             throw new ApiError(500, "Document creation failed", error);
@@ -77,7 +77,15 @@ const publishAVideo = asyncHandler(async (req, res) => {
 
 const getVideoById = asyncHandler(async (req, res) => {
     const { videoId } = req.params
-    //TODO: get video by id
+    let video;
+    try{
+    video = await Video.findById(videoId);
+    }
+    catch(error){
+        throw new ApiError(400,"Video does not exist",error)
+    }
+    return res.status(200).json(new ApiResponse(200,video,"Video Found"))
+
 })
 
 const updateVideo = asyncHandler(async (req, res) => {
