@@ -9,7 +9,7 @@ import { getVideoDurationInSeconds } from "get-video-duration"
 
 const getAllVideos = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query
-    //TODO: get all videos based on query, sort, pagination
+
 })
 
 const publishAVideo = asyncHandler(async (req, res) => {
@@ -143,7 +143,36 @@ const updateVideo = asyncHandler(async (req, res) => {
 
 const deleteVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
-    //TODO: delete video
+    const video=await Video.findById(videoId);
+    if(!video){
+        throw new ApiError(404,"Video not found");
+    }
+    else{
+        try{
+            await deleteFromCloudinary(video.videoPID,"video");
+        }
+        catch(error){
+            throw new ApiError(500,"Delete video from cloud failed",error);
+        }
+        try{
+            await deleteFromCloudinary(video.thumbnailPID);
+        }
+        catch(error){
+            throw new ApiError(500,"Delete thumbnail from cloud failed",error);
+        }
+        try{
+            const deleteStatus=await Video.deleteOne({_id: videoId});
+            if(deleteStatus){
+                return res.status(200).json(new ApiResponse(200,deleteStatus,"Successfully deleted video document and cloud data"));
+            }
+            else{
+                throw new ApiError(500,"Unable to delete document");
+            }
+        }
+        catch(error){
+            throw new ApiError(500,"Delete failed");
+        }
+    }
 })
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
