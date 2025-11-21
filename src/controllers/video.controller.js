@@ -13,6 +13,9 @@ const getAllVideos = asyncHandler(async (req, res) => {
         throw new ApiError(400, "All fields required");
     }
     else {
+        if (!isValidObjectId(userId)) {
+            throw new ApiError(400, "Invalid Video ID");
+        }
         const user = await User.findById(userId).select("-password -refreshToken -email -fullname");
         if (!user) {
             throw new ApiError(404, "User does not exist");
@@ -123,6 +126,9 @@ const publishAVideo = asyncHandler(async (req, res) => {
 const getVideoById = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     let video;
+    if (!isValidObjectId(videoId)) {
+        throw new ApiError(400, "Invalid Video ID");
+    }
     video = await Video.findById(videoId);
     if (!video) {
         throw new ApiError(404, "Video does not exist")
@@ -133,6 +139,9 @@ const getVideoById = asyncHandler(async (req, res) => {
 
 const updateVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
+    if (!isValidObjectId(videoId)) {
+        throw new ApiError(400, "Invalid Video ID");
+    }
     let video;
     video = await Video.findById(videoId);
     if (!video) {
@@ -185,6 +194,9 @@ const updateVideo = asyncHandler(async (req, res) => {
 
 const deleteVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
+    if (!isValidObjectId(videoId)) {
+        throw new ApiError(400, "Invalid Video ID");
+    }
     const video = await Video.findById(videoId);
     if (!video) {
         throw new ApiError(404, "Video not found");
