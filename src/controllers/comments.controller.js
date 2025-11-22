@@ -5,7 +5,6 @@ import { ApiResponse } from "../utils/ApiResponse.js"
 import { asyncHandler } from "../utils/asyncHandler.js"
 
 const getVideoComments = asyncHandler(async (req, res) => {
-    //TODO: TESTING
     const { videoId } = req.params;
     const { page = 1, limit = 10 } = req.query;
 
@@ -13,7 +12,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
     const comments = await Comment.aggregate([
         {
             $match: {
-                video: videoId
+                video: new mongoose.Types.ObjectId(videoId)
             }
         },
         {
@@ -22,7 +21,10 @@ const getVideoComments = asyncHandler(async (req, res) => {
             }
         },
         {
-            $limit: limit * page
+            $skip: (parseInt(page)-1) * parseInt(limit)
+        },
+        {
+            $limit: parseInt(limit)
         },
         {
             $project: {
@@ -52,8 +54,7 @@ const addComment = asyncHandler(async (req, res) => {
 
     try {
         const comment = await Comment.create({
-            //TODO: uncomment after creating video controller
-            // video:videoId,
+            video: new mongoose.Types.ObjectId(videoId),
             owner: owner,
             content: content
         })
