@@ -21,7 +21,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
             }
         },
         {
-            $skip: (parseInt(page)-1) * parseInt(limit)
+            $skip: (parseInt(page) - 1) * parseInt(limit)
         },
         {
             $limit: parseInt(limit)
@@ -84,13 +84,13 @@ const updateComment = asyncHandler(async (req, res) => {
     }
     else {
         const { newContent } = req.body;
-        if (!newContent || newContent.trim()==="") {
+        if (!newContent || newContent.trim() === "") {
             throw new ApiError(400, "New Content Required");
         }
         else {
             try {
-                comment.content=newContent;
-                await comment.save({validateBeforeSave:true});
+                comment.content = newContent;
+                await comment.save({ validateBeforeSave: true });
                 const updatedComment = await Comment.findById(comment._id).select("-createdAt -updatedAt -_id");
                 if (!updatedComment) {
                     throw new ApiError(500, "Update Op Fail");
@@ -100,7 +100,7 @@ const updateComment = asyncHandler(async (req, res) => {
                 }
             }
             catch (error) {
-                throw new ApiError(500, "Update Failed",error);
+                throw new ApiError(500, "Update Failed", error);
             }
         }
     }
@@ -115,18 +115,18 @@ const deleteComment = asyncHandler(async (req, res) => {
     if (!comment) {
         throw new ApiError(400, "Comment Not Found");
     }
-    else{
-        try{
-            const deleteRes=await Comment.deleteOne({_id:commentId});
-            if(!deleteRes){
-                throw new ApiError(500,"Delete Failed");
+    else {
+        try {
+            const deleteRes = await Comment.deleteOne({ _id: commentId });
+            if (!deleteRes) {
+                throw new ApiError(500, "Delete Failed");
             }
-            else{
-                return res.status(200).json(new ApiResponse(200,deleteRes,"Deleted Successfully"))
+            else {
+                return res.status(200).json(new ApiResponse(200, deleteRes, "Deleted Successfully"))
             }
         }
-        catch(error){
-            throw new ApiError(500,"Delete Error",error);
+        catch (error) {
+            throw new ApiError(500, "Delete Error", error);
         }
     }
 })
