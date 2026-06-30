@@ -90,12 +90,35 @@ const getChannelStats = asyncHandler(async (req, res) => {
         }
     }
     else {
-        throw new ApiError(401, "Unauthorized attempt")
+        throw new ApiError(401, "Unauthorized attempt");
     }
 })
 
 const getChannelVideos = asyncHandler(async (req, res) => {
-    // TODO: Get all the videos uploaded by the channel
+    if (req.user) {
+        const channelVideos = await Video.find(
+            { owner: req.user._id, isPublished: true },
+            {
+                videoFile: 1,
+                title: 1,
+                thumbnail: 1,
+                title: 1,
+                description: 1,
+                views: 1,
+                duration: 1
+            }
+        ).lean();
+        if (channelVideos) {
+            return res
+                .status(200)
+                .json(channelVideos);
+        }
+        else {
+            res.status(500).json(new ApiResponse(500, {}, "Error fetching channel videos"));
+        }
+    } else {
+        throw new ApiError(401, "Unauthorized Attempt");
+    }
 })
 
 export {
